@@ -37,6 +37,12 @@ class BookingStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class PaymentStatus(StrEnum):
+    PENDING = "pending"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
 class Owner(Base):
     __tablename__ = "owners"
 
@@ -44,10 +50,12 @@ class Owner(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(120))
-    phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    bot_token: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, unique=True)
-    bot_username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    webhook_secret: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    bot_token: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    bot_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    webhook_secret: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    link_code: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -64,11 +72,15 @@ class Subscription(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("owners.id", ondelete="CASCADE"), unique=True)
     status: Mapped[SubscriptionStatus] = mapped_column(
-        Enum(SubscriptionStatus, name="subscription_status", values_callable=lambda x: [e.value for e in x]),
+        Enum(
+            SubscriptionStatus,
+            name="subscription_status",
+            values_callable=lambda x: [e.value for e in x],
+        ),
         default=SubscriptionStatus.TRIAL,
     )
-    trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    paid_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    paid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     owner: Mapped["Owner"] = relationship(back_populates="subscription")
@@ -85,7 +97,7 @@ class Unit(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     price_per_night: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     capacity: Mapped[int] = mapped_column(Integer, default=2)
-    address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -119,7 +131,7 @@ class BlockedDate(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     unit_id: Mapped[int] = mapped_column(ForeignKey("units.id", ondelete="CASCADE"), index=True)
     day: Mapped[date] = mapped_column(Date)
-    note: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     unit: Mapped["Unit"] = relationship(back_populates="blocked_dates")
 
@@ -132,15 +144,40 @@ class Booking(Base):
     unit_id: Mapped[int] = mapped_column(ForeignKey("units.id", ondelete="CASCADE"), index=True)
     guest_name: Mapped[str] = mapped_column(String(120))
     guest_phone: Mapped[str] = mapped_column(String(32))
-    guest_telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    guest_telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     check_in: Mapped[date] = mapped_column(Date)
     check_out: Mapped[date] = mapped_column(Date)
     status: Mapped[BookingStatus] = mapped_column(
         Enum(BookingStatus, name="booking_status", values_callable=lambda x: [e.value for e in x]),
         default=BookingStatus.NEW,
     )
-    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     owner: Mapped["Owner"] = relationship(back_populates="bookings")
     unit: Mapped["Unit"] = relationship(back_populates="bookings")
+
+
+class Payment(Base):
+    """Ledger of subscription payments, whatever provider produced them."""
+
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("owners.id", ondelete="CASCADE"), index=True)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="RUB", server_default="RUB")
+    status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, name="payment_status", values_callable=lambda x: [e.value for e in x]),
+        default=PaymentStatus.PENDING,
+        server_default=PaymentStatus.PENDING.value,
+    )
+    provider: Mapped[str] = mapped_column(String(32))
+    # Unique but nullable: PostgreSQL allows many NULLs, so manual and stub
+    # payments coexist while a repeated YooKassa id is rejected by the database.
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    owner: Mapped["Owner"] = relationship()

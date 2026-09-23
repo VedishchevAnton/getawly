@@ -13,5 +13,15 @@
     <button type="submit">Сохранить и поставить webhook</button>
   </form>
   <p class="muted">Нужен публичный HTTPS URL в <code>BASE_URL</code> (для локалки — ngrok/cloudflared).</p>
+
+  {% if owner.bot_username and owner.link_code %}
+    <h2>Заявки в Telegram</h2>
+    {% if owner.telegram_chat_id %}
+      <p class="ok">Telegram привязан — заявки приходят вам в бота.</p>
+    {% else %}
+      <p>Откройте <a href="https://t.me/{{ owner.bot_username }}?start={{ owner.link_code }}">эту ссылку</a>,
+        чтобы получать заявки прямо в Telegram и отвечать на них кнопками.</p>
+    {% endif %}
+  {% endif %}
 </section>
 {% endblock %}

@@ -17,6 +17,9 @@
   {% else %}
     <p class="error">Доступ ограничен.</p>
   {% endif %}
-  <p class="muted">Оплата через ЮKassa подключится в следующем шаге. Сейчас действует триал {{ trial_days }} дней с регистрации.</p>
+  <p class="muted">Триал — {{ trial_days }} дней с регистрации. Дальше {{ price }} ₽ за {{ period_days }} дней.</p>
+  <form method="post" action="/cabinet/subscription/pay">
+    <button type="submit">Оплатить {{ price }} ₽ за {{ period_days }} дней</button>
+  </form>
 </section>
 {% endblock %}

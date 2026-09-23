@@ -16,11 +16,23 @@ class Settings(BaseSettings):
     session_cookie_name: str = "getawly_session"
     session_max_age: int = 60 * 60 * 24 * 14
 
-    trial_days: int = 14
+    trial_days: int = 30
+
+    subscription_price_rub: int = 100
+    subscription_period_days: int = 30
+
+    # stub | manual | yookassa
+    payment_provider: str = "stub"
+    manual_payment_details: str = ""
+    admin_emails: str = ""
 
     platform_bot_token: str | None = None
     yookassa_shop_id: str | None = None
     yookassa_secret_key: str | None = None
+
+    @property
+    def admin_email_list(self) -> list[str]:
+        return [e.strip().lower() for e in self.admin_emails.split(",") if e.strip()]
 
 
 @lru_cache

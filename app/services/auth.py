@@ -33,6 +33,7 @@ async def register_owner(
         name=name.strip(),
         phone=phone,
         webhook_secret=token_urlsafe(24),
+        link_code=token_urlsafe(12),
     )
     session.add(owner)
     await session.flush()
@@ -56,6 +57,24 @@ async def authenticate_owner(session: AsyncSession, email: str, password: str) -
     if owner is None or not verify_password(password, owner.password_hash):
         return None
     return owner
+
+
+async def link_owner_chat(
+    session: AsyncSession, owner_id: int, payload: str | None, chat_id: int
+) -> bool:
+    """Bind the owner's Telegram chat, but only on an exact code match.
+
+    A wrong or missing payload is not an error: it is simply an ordinary
+    /start from a guest, and must be treated as such.
+    """
+    if not payload:
+        return False
+    owner = await session.get(Owner, owner_id)
+    if owner is None or not owner.link_code or owner.link_code != payload:
+        return False
+    owner.telegram_chat_id = chat_id
+    await session.commit()
+    return True
 
 
 def subscription_is_usable(sub: Subscription | None) -> bool:

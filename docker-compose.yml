@@ -15,7 +15,9 @@ services:
       timeout: 5s
       retries: 10
     ports:
-      - "5432:5432"
+      # Published high to stay clear of native PostgreSQL installs, which
+      # commonly occupy 5432-5434 and answer instead of this container.
+      - "55432:5432"
 
   api:
     build: .

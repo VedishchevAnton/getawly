@@ -1,15 +1,22 @@
+import logging
 from datetime import date, datetime
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.bot.keyboards import main_menu, units_keyboard
 from app.bot.states import BookingFSM
 from app.db import SessionLocal
+from app.models import Owner, Unit
+from app.services import photos
 from app.services.booking import create_booking, list_available_units
+from app.services.notify import decide_booking, notify_guest_decision, notify_owner_new_booking
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
 def _parse_ru_date(text: str) -> date | None:
@@ -63,6 +70,24 @@ async def choose_unit(callback: CallbackQuery, state: FSMContext) -> None:
     unit_id = int(callback.data.split(":")[1])
     await state.update_data(unit_id=unit_id)
     await state.set_state(BookingFSM.guest_name)
+
+    async with SessionLocal() as session:
+        unit = (
+            await session.execute(
+                select(Unit).where(Unit.id == unit_id).options(selectinload(Unit.photos))
+            )
+        ).scalar_one_or_none()
+
+    if unit is not None and unit.photos and callback.message:
+        try:
+            await callback.message.answer_photo(
+                FSInputFile(str(photos.UPLOAD_ROOT / unit.photos[0].path)),
+                caption=f"<b>{unit.title}</b>\n{unit.description or ''}",
+            )
+        except Exception:
+            # A missing or unreadable file must not stop the booking.
+            logger.exception("Could not send photo for unit %s", unit_id)
+
     await callback.message.answer("Как вас зовут?")
     await callback.answer()
 
@@ -79,7 +104,7 @@ async def got_name(message: Message, state: FSMContext) -> None:
 
 
 @router.message(BookingFSM.guest_phone)
-async def got_phone(message: Message, state: FSMContext, owner_id: int) -> None:
+async def got_phone(message: Message, state: FSMContext, owner_id: int, bot: Bot) -> None:
     phone = (message.text or "").strip()
     if len(phone) < 5:
         await message.answer("Укажите телефон покороче не получится — минимум 5 символов.")
@@ -110,9 +135,38 @@ async def got_phone(message: Message, state: FSMContext, owner_id: int) -> None:
         )
         return
 
+    async with SessionLocal() as session:
+        owner = await session.get(Owner, owner_id)
+        unit = await session.get(Unit, unit_id)
+        if owner is not None and unit is not None:
+            await notify_owner_new_booking(bot, owner, booking, unit)
+
     await message.answer(
         f"Заявка #{booking.id} отправлена хозяину.\n"
         f"{check_in.strftime('%d.%m.%Y')} → {check_out.strftime('%d.%m.%Y')}\n"
         "Он свяжется с вами по телефону.",
         reply_markup=main_menu(),
     )
+
+
+@router.callback_query(F.data.startswith("booking:"))
+async def booking_decision(callback: CallbackQuery, owner_id: int, bot: Bot) -> None:
+    _, action, raw_id = callback.data.split(":")
+    chat_id = callback.message.chat.id if callback.message else 0
+
+    async with SessionLocal() as session:
+        owner = await session.get(Owner, owner_id)
+        if owner is None:
+            await callback.answer("Недоступно", show_alert=True)
+            return
+        booking = await decide_booking(session, owner, chat_id, int(raw_id), action)
+
+    if booking is None:
+        await callback.answer("Недоступно", show_alert=True)
+        return
+
+    await notify_guest_decision(bot, booking)
+    await callback.answer("Готово")
+    if callback.message:
+        decision = "подтверждена" if action == "confirm" else "отклонена"
+        await callback.message.answer(f"Заявка #{booking.id}: {decision}.")

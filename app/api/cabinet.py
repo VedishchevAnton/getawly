@@ -120,5 +120,7 @@ async def subscription_page(request: Request, owner: Owner = Depends(get_current
             "owner": owner,
             "sub_ok": subscription_is_usable(owner.subscription),
             "trial_days": settings.trial_days,
+            "price": settings.subscription_price_rub,
+            "period_days": settings.subscription_period_days,
         },
     )

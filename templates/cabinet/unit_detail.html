@@ -14,4 +14,25 @@
   {% if unit.address %}<p>{{ unit.address }}</p>{% endif %}
   <p>{% if unit.is_published %}Опубликован{% else %}Скрыт{% endif %}</p>
 </section>
+
+<section>
+  <h2>Фотографии</h2>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <div class="photos">
+    {% for photo in unit.photos %}
+      <figure>
+        <img src="/media/{{ photo.path }}" alt="{{ unit.title }}" style="max-width:200px">
+        <form method="post" action="/cabinet/units/{{ unit.id }}/photos/{{ photo.id }}/delete">
+          <button type="submit">Удалить</button>
+        </form>
+      </figure>
+    {% else %}
+      <p class="muted">Фотографий пока нет. Гость увидит только текст.</p>
+    {% endfor %}
+  </div>
+  <form method="post" action="/cabinet/units/{{ unit.id }}/photos" enctype="multipart/form-data">
+    <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
+    <button type="submit">Загрузить фото</button>
+  </form>
+</section>
 {% endblock %}
