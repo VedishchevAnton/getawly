@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Telegram-бот — Getawly{% endblock %}
+{% block content %}
+<section class="form-card">
+  <h1>Ваш Telegram-бот</h1>
+  <p>Создайте бота у <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> и вставьте токен сюда. Гости будут писать <em>вашему</em> боту.</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if ok %}<p class="ok">{{ ok }}</p>{% endif %}
+  {% if webhook_url %}<p class="muted">Webhook: <code>{{ webhook_url }}</code></p>{% endif %}
+  {% if owner.bot_username %}<p>Сейчас: <strong>@{{ owner.bot_username }}</strong></p>{% endif %}
+  <form method="post" action="/cabinet/bot">
+    <label>Bot token <input name="bot_token" value="{{ owner.bot_token or '' }}" required placeholder="123456:ABC..."></label>
+    <button type="submit">Сохранить и поставить webhook</button>
+  </form>
+  <p class="muted">Нужен публичный HTTPS URL в <code>BASE_URL</code> (для локалки — ngrok/cloudflared).</p>
+</section>
+{% endblock %}

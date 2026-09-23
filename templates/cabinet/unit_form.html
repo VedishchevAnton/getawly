@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Редактировать' if unit else 'Новый объект' }} — Getawly{% endblock %}
+{% block content %}
+<section class="form-card">
+  <h1>{{ 'Редактировать объект' if unit else 'Новый объект' }}</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ '/cabinet/units/' ~ unit.id ~ '/edit' if unit else '/cabinet/units/new' }}">
+    <label>Название <input name="title" required value="{{ unit.title if unit else '' }}"></label>
+    <label>Описание <textarea name="description" rows="5">{{ unit.description if unit else '' }}</textarea></label>
+    <label>Цена за ночь, ₽ <input name="price_per_night" value="{{ unit.price_per_night if unit else '0' }}"></label>
+    <label>Вместимость <input type="number" name="capacity" min="1" value="{{ unit.capacity if unit else 2 }}"></label>
+    <label>Адрес <input name="address" value="{{ unit.address if unit and unit.address else '' }}"></label>
+    {% if unit %}
+      <label class="check"><input type="checkbox" name="is_published" {% if unit.is_published %}checked{% endif %}> Опубликован в боте</label>
+    {% endif %}
+    <button type="submit">Сохранить</button>
+  </form>
+</section>
+{% endblock %}

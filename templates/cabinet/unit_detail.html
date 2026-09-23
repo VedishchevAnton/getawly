@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ unit.title }} — Getawly{% endblock %}
+{% block content %}
+<section>
+  <div class="row-between">
+    <h1>{{ unit.title }}</h1>
+    <div>
+      <a href="/cabinet/units/{{ unit.id }}/edit">Редактировать</a>
+      · <a href="/cabinet/units/{{ unit.id }}/calendar">Календарь</a>
+    </div>
+  </div>
+  <p>{{ unit.description or 'Без описания' }}</p>
+  <p><strong>{{ unit.price_per_night }}</strong> ₽/ночь · до {{ unit.capacity }} гостей</p>
+  {% if unit.address %}<p>{{ unit.address }}</p>{% endif %}
+  <p>{% if unit.is_published %}Опубликован{% else %}Скрыт{% endif %}</p>
+</section>
+{% endblock %}

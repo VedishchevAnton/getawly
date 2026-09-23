@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Кабинет — Getawly{% endblock %}
+{% block content %}
+<section>
+  <h1>Привет, {{ owner.name }}</h1>
+  {% if sub_ok %}
+    <p class="ok">Подписка активна
+      {% if owner.subscription and owner.subscription.status.value == 'trial' %}
+        (триал до {{ owner.subscription.trial_ends_at.strftime('%d.%m.%Y') if owner.subscription.trial_ends_at else '—' }})
+      {% endif %}
+    </p>
+  {% else %}
+    <p class="error">Подписка неактивна. <a href="/cabinet/subscription">Продлить</a></p>
+  {% endif %}
+
+  <div class="grid-2">
+    <div>
+      <h2>Объекты ({{ units|length }})</h2>
+      <ul>
+        {% for u in units %}
+          <li><a href="/cabinet/units/{{ u.id }}">{{ u.title }}</a> — {{ u.price_per_night }} ₽</li>
+        {% else %}
+          <li>Пока пусто. <a href="/cabinet/units/new">Добавить объект</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div>
+      <h2>Последние заявки</h2>
+      <ul>
+        {% for b in bookings %}
+          <li>#{{ b.id }} {{ b.guest_name }} — {{ b.unit.title }} ({{ b.status.value }})</li>
+        {% else %}
+          <li>Заявок ещё нет</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <p>
+    {% if not owner.bot_token %}
+      <a class="btn" href="/cabinet/bot">Подключить Telegram-бота</a>
+    {% else %}
+      Бот: {% if owner.bot_username %}@{{ owner.bot_username }}{% else %}подключён{% endif %}
+    {% endif %}
+  </p>
+</section>
+{% endblock %}

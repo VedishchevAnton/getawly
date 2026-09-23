@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Объекты — Getawly{% endblock %}
+{% block content %}
+<section>
+  <div class="row-between">
+    <h1>Объекты</h1>
+    <a class="btn" href="/cabinet/units/new">Добавить</a>
+  </div>
+  <ul class="list">
+    {% for u in units %}
+      <li>
+        <a href="/cabinet/units/{{ u.id }}"><strong>{{ u.title }}</strong></a>
+        — {{ u.price_per_night }} ₽/ночь
+        {% if not u.is_published %}<span class="badge">скрыт</span>{% endif %}
+      </li>
+    {% else %}
+      <li>Пока нет объектов</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

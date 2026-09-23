@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Подписка — Getawly{% endblock %}
+{% block content %}
+<section class="form-card">
+  <h1>Подписка</h1>
+  {% if owner.subscription %}
+    <p>Статус: <strong>{{ owner.subscription.status.value }}</strong></p>
+    {% if owner.subscription.trial_ends_at %}
+      <p>Триал до: {{ owner.subscription.trial_ends_at.strftime('%d.%m.%Y %H:%M') }}</p>
+    {% endif %}
+    {% if owner.subscription.paid_until %}
+      <p>Оплачено до: {{ owner.subscription.paid_until.strftime('%d.%m.%Y') }}</p>
+    {% endif %}
+  {% endif %}
+  {% if sub_ok %}
+    <p class="ok">Сейчас всё работает.</p>
+  {% else %}
+    <p class="error">Доступ ограничен.</p>
+  {% endif %}
+  <p class="muted">Оплата через ЮKassa подключится в следующем шаге. Сейчас действует триал {{ trial_days }} дней с регистрации.</p>
+</section>
+{% endblock %}

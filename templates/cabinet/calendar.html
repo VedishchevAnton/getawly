@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Календарь — {{ unit.title }}{% endblock %}
+{% block content %}
+<section>
+  <h1>Календарь: {{ unit.title }}</h1>
+  <p class="muted">Клик по свободному дню блокирует его. Занятые дни — заявки и ручные блоки.</p>
+  <div class="calendar">
+    {% for item in days %}
+      {% if item.busy %}
+        <span class="day busy">{{ item.day.strftime('%d.%m') }}</span>
+      {% else %}
+        <form class="day free" method="post" action="/cabinet/units/{{ unit.id }}/calendar/block">
+          <input type="hidden" name="day" value="{{ item.day.isoformat() }}">
+          <button type="submit">{{ item.day.strftime('%d.%m') }}</button>
+        </form>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

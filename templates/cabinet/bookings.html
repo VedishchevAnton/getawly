@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Заявки — Getawly{% endblock %}
+{% block content %}
+<section>
+  <h1>Заявки</h1>
+
+  <div class="booking-cards mob-only">
+    {% for b in bookings %}
+    <article class="booking-card">
+      <div class="booking-card__head">
+        <span>#{{ b.id }} · {{ b.guest_name }}</span>
+        <span class="badge">{{ b.status.value }}</span>
+      </div>
+      <p class="booking-card__meta">{{ b.guest_phone }}</p>
+      <p class="booking-card__meta">{{ b.unit.title }}</p>
+      <p class="booking-card__meta">{{ b.check_in.strftime('%d.%m.%Y') }} → {{ b.check_out.strftime('%d.%m.%Y') }}</p>
+      <form class="booking-card__actions" method="post" action="/cabinet/bookings/{{ b.id }}/status">
+        <select name="status" aria-label="Статус заявки">
+          {% for s in ['new','confirmed','declined','cancelled'] %}
+            <option value="{{ s }}" {% if b.status.value == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">OK</button>
+      </form>
+    </article>
+    {% else %}
+    <p class="muted">Пока пусто</p>
+    {% endfor %}
+  </div>
+
+  <div class="table-wrap desk-only">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Гость</th><th>Объект</th><th>Даты</th><th>Статус</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td>{{ b.id }}</td>
+          <td>{{ b.guest_name }}<br><span class="muted">{{ b.guest_phone }}</span></td>
+          <td>{{ b.unit.title }}</td>
+          <td>{{ b.check_in.strftime('%d.%m') }} → {{ b.check_out.strftime('%d.%m.%Y') }}</td>
+          <td>{{ b.status.value }}</td>
+          <td>
+            <form class="inline" method="post" action="/cabinet/bookings/{{ b.id }}/status">
+              <select name="status">
+                {% for s in ['new','confirmed','declined','cancelled'] %}
+                  <option value="{{ s }}" {% if b.status.value == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit">OK</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Пока пусто</td></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
